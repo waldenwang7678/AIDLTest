@@ -35,4 +35,21 @@
         android:text="min"
         android:textAllCaps="false" />
 
+    <Switch
+        android:id="@+id/switch1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:layout_marginRight="15dp"
+        android:checked="true"
+        android:textOff="不使用AIDL"
+        android:textOn="使用AIDL"
+        android:textSize="30sp" />
+
+    <Button
+        android:textAllCaps="false"
+        android:id="@+id/messenger_connect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="messenger" />
 </LinearLayout>
