@@ -23,7 +23,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     MyAidl aidl;
     boolean useAIDL = false;   //进程通信, 使用或不使用 aidl ,
     IBinder binder;
-    Messenger mMessenger;
+    Messenger mService;
+    boolean isMessengerCon;
 
     private ServiceConnection connection = new ServiceConnection() {
         @Override
@@ -43,31 +44,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(MainActivity.this, "连接失败", Toast.LENGTH_SHORT).show();
         }
     };
+
     private ServiceConnection conMessenger = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            mMessenger = new Messenger(iBinder);
-            //todo
-            mMessenger.send();
+            mService = new Messenger(iBinder);  //连接后返回-远程信使 ,可以用这个远程信使向服务端发消息
+            isMessengerCon = true;
             Toast.makeText(MainActivity.this, "messenger连接成功", Toast.LENGTH_SHORT).show();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            mMessenger = null;
+            mService = null;
+            isMessengerCon = false;
             Toast.makeText(MainActivity.this, "messenger连接失败", Toast.LENGTH_SHORT).show();
         }
     };
     //接收服务器传递的消息
-    Messenger mReceiver = new Messenger(new Handler() {
+    Messenger mMessenger = new Messenger(new Handler() {
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            Bundle bundle = msg.getData();
-            if (bundle != null) {
-                String str = bundle.getString("address");
-                Toast.makeText(MainActivity.this, str, Toast.LENGTH_SHORT).show();
+        public void handleMessage(Message msgFromServer) {
+            switch (msgFromServer.what) {
+                case 200:
+                    Bundle bundle = msgFromServer.getData();
+                    if (bundle != null) {
+                        String str = bundle.getString("address");
+                        Toast.makeText(MainActivity.this, str, Toast.LENGTH_SHORT).show();
+                    }
+                    break;
             }
+            super.handleMessage(msgFromServer);
         }
     });
 
@@ -75,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        connectMessenger();  //连接messenage
         initVIew();
     }
 
@@ -176,11 +183,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Toast.makeText(this, "服务端未绑定或被异常杀死，请重新绑定服务端", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case R.id.messenger_connect:
-                Intent intent = new Intent();
-                intent.setAction("com.walden.messenger");  //连接 messenger service
-                intent.setPackage("com.wangjt.aidlservice");
-                bindService(intent, conMessenger, Context.BIND_AUTO_CREATE);  //连接到一个服务
+            case R.id.messenger_connect:  //本地创建消息 ,发给服务器 ,
+                Message msgFromClient = Message.obtain(null, 200, 11, 22);   //创建一个message
+                msgFromClient.replyTo = mMessenger;  // 把自己的信使发给服务端, 这样服务端就可以通过这个向客户端发消息了
+                try {
+                    mService.send(msgFromClient);   //往服务端发消息
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
                 break;
         }
     }
@@ -194,5 +204,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         intent.setPackage("com.wangjt.aidlservice");
         bindService(intent, connection, Context.BIND_AUTO_CREATE);  //连接到一个服务
+    }
+
+    private void connectMessenger() {
+        Intent intent = new Intent();
+        intent.setAction("com.walden.messenger");  //连接 messenger service
+        intent.setPackage("com.wangjt.aidlservice");
+        bindService(intent, conMessenger, Context.BIND_AUTO_CREATE);  //连接到一个服务
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(conMessenger);
     }
 }
