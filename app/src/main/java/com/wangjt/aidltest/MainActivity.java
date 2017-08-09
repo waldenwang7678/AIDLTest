@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             mMessenger = new Messenger(iBinder);
             //todo
-            
+            mMessenger.send();
             Toast.makeText(MainActivity.this, "messenger连接成功", Toast.LENGTH_SHORT).show();
         }
 
@@ -58,7 +58,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(MainActivity.this, "messenger连接失败", Toast.LENGTH_SHORT).show();
         }
     };
-    Handler handler = new Handler() {
+    //接收服务器传递的消息
+    Messenger mReceiver = new Messenger(new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -68,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(MainActivity.this, str, Toast.LENGTH_SHORT).show();
             }
         }
-    };
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
